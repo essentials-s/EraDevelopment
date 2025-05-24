@@ -15,51 +15,69 @@
     user-select: none;
   `;
 
-  // Создаем кнопку
+  // Создаем кнопку очистки
   const btn = document.createElement("div");
   btn.textContent = "🧹 Очистить рекламу";
   btn.style = style;
   btn.onclick = () => {
-    clearAds();
-    alert("✅ Реклама удалена!");
+    clearAll();
+    alert("✅ Реклама и белый экран удалены!");
   };
   document.body.appendChild(btn);
 
-  // Основная функция удаления рекламы
-  function clearAds() {
-    // Удаляем баннеры, iframe, классы и ID, связанные с рекламой
+  function clearAll() {
+    // Удаляем рекламу
     document.querySelectorAll(
       'iframe, .adsbygoogle, .banner, .ad, .ads, .reklama, .overlay, .popup, [id*="ad"], [class*="ad"]'
     ).forEach((el) => el.remove());
 
-    // Блокируем всплывающие элементы
-    document.querySelectorAll('[style*="z-index"]').forEach((el) => {
-      const html = el.innerHTML || "";
+    // Удаляем белый фон
+    document.querySelectorAll("*").forEach((el) => {
+      const bg = window.getComputedStyle(el).backgroundColor;
+      if (bg === "rgb(255, 255, 255)" && el.offsetHeight > 300) {
+        el.remove();
+      }
+    });
+
+    // Удаляем подозрительные фуллскрин элементы
+    document.querySelectorAll("[style]").forEach((el) => {
+      const style = el.getAttribute("style");
       if (
-        el.innerText.includes("Реклама") ||
-        html.length < 300 ||
-        el.offsetHeight < 100
+        style.includes("position: fixed") &&
+        style.includes("z-index") &&
+        el.offsetHeight >= window.innerHeight * 0.8
       ) {
         el.remove();
       }
     });
 
-    // Перезагружаем iframe без параметров (убираем рекламные ссылки)
-    const iframes = document.querySelectorAll("iframe");
-    iframes.forEach((iframe) => {
-      if (iframe.src.includes("?")) {
-        const cleanSrc = iframe.src.split("?")[0];
-        iframe.src = cleanSrc;
-      }
+    // Удаление белого экрана по ID (часто используется `#fblock`, `#adblock`, `#fdiv`)
+    ["fblock", "adblock", "fdiv", "fade", "blocker"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.remove();
     });
 
-    // Блокируем auto-open рекламы
+    // Защита от повторного появления
+    const styleBlock = document.createElement("style");
+    styleBlock.innerHTML = `
+      #fblock, #adblock, #fdiv, .fade, .blocker {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+      body[style*="overflow: hidden"] {
+        overflow: auto !important;
+      }
+    `;
+    document.head.appendChild(styleBlock);
+
+    // Блокировка вредных функций
     window.open = () => null;
     window.alert = () => null;
     window.confirm = () => true;
     window.onbeforeunload = null;
   }
 
-  // Повторно очищаем рекламу каждые 3 сек (на случай, если появится заново)
-  setInterval(clearAds, 3000);
+  // Постоянная зачистка каждые 2 сек
+  setInterval(clearAll, 2000);
 })();
